@@ -1,7 +1,8 @@
 #include "stm32h7xx.h"
-#include "task.h"
+#include "os_task.h"
 #include "list.h"
 
+//TODO: move to arch
 #define SYSTICK_ENABLE      (1U << 0)
 #define SYSTICK_TICKINT     (1U << 1)
 #define SYSTICK_CLKSOURCE   (1U << 2)
@@ -11,25 +12,25 @@ const u32 pendsv_prio = 0xffU;
 
 /* global variables */
 LIST_CREATE(task_list);
-static volatile struct task* active_task;
-static volatile struct task* next_task;
+static volatile struct os_task* active_task;
+static volatile struct os_task* next_task;
 
 /* static functions */
-static void sched_get_next_task(void);
-static i32 task_end(void* null);
+static void os_sched_get_next_task(void);
+static i32 os_task_end(void* null);
 
-struct task* task_get_current(void)
+struct os_task* os_task_get_current(void)
 {
-    return (struct task*)active_task;
+    return (struct os_task*)active_task;
 }
 
-void reschedule(void)
+void os_reschedule(void)
 {
-    sched_get_next_task();
+    os_sched_get_next_task();
     SCB->ICSR |= (1U << 28);
 }
 
-i32 task_init(  struct task* task,
+i32 os_task_init(  struct os_task* task,
                 i32 (*handler)(void*),
                 void* params,
                 u32 prio,
@@ -46,7 +47,7 @@ i32 task_init(  struct task* task,
     /* init stack of new thread */
     sp[offset - 1] = 0x01000000;                //psp register
     sp[offset - 2] = (u32)handler &~ 0x01UL;    //pc register
-    sp[offset - 3] = (u32)task_end;             //lr register
+    sp[offset - 3] = (u32)os_task_end;             //lr register
     sp[offset - 8] = (u32)params;               //r0 register - arg
 
     /* push task to list */
@@ -54,7 +55,7 @@ i32 task_init(  struct task* task,
     return 0;
 }
 
-void sched_start(u32 ticks)
+void os_sched_start(u32 ticks)
 {
     /* set systick and prio of systick pendsv*/
     /*TODO: Move architecture depend code into new arch/ directory */
@@ -62,8 +63,8 @@ void sched_start(u32 ticks)
     SCB->SHPR[2] |= (u8)(pendsv_prio << 16);
     SCB->SHPR[2] |= (u8)(systick_prio << 24);
     #elif CORE_CM4
-    SCB->SHP[2] |= (pendsv_prio << 16);
-    SCB->SHP[2] |= (systick_prio << 24);
+    SCB->SHP[2] |= (u8)(pendsv_prio << 16);
+    SCB->SHP[2] |= (u8)(systick_prio << 24);
     #endif
     SysTick->LOAD = ticks - 1;
     SysTick->CTRL |= SYSTICK_ENABLE;
@@ -82,7 +83,7 @@ void sched_start(u32 ticks)
     active_task->handler(active_task->params);
 }
 
-static void sched_get_next_task(void)
+static void os_sched_get_next_task(void)
 {
     active_task->status = TASK_READY;
     list_t* ptr = (list_t*)(&active_task->list);
@@ -103,7 +104,7 @@ static void sched_get_next_task(void)
 }
 
 ATTRIBUTE(noreturn)
-static i32 task_end(void* null)
+static i32 os_task_end(void* null)
 {
     (void)null;
     while(1) {}
@@ -111,7 +112,7 @@ static i32 task_end(void* null)
 
 void SysTick_Handler(void) {
     critical_start();
-    sched_get_next_task();
+    os_sched_get_next_task();
     SysTick->VAL = 0;
     critical_end();
     SCB->ICSR |= (1U << 28);

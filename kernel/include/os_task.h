@@ -4,7 +4,7 @@
 #include "types.h"
 
 #define list_get_task(ptr)                  \
-        list_get_ptr(ptr, struct task, list)
+        list_get_ptr(ptr, struct os_task, list)
 
 
 /**
@@ -26,7 +26,7 @@ enum TaskStateE
  *          that are needed for execution task
  *
  */
-struct task
+struct os_task
 {
     u32 sp;                                 //stack pointer
     u32 prio;                               //priority
@@ -49,7 +49,7 @@ struct task
  * @param stack_size size of stack
  * @return 0 on success
  */
-i32 task_init(  struct task* task,
+i32 os_task_init(  struct os_task* task,
                 i32 (*handler)(void*),
                 void* params,
                 u32 prio,
@@ -63,7 +63,7 @@ i32 task_init(  struct task* task,
  * @param ticks systick ticks
  *
  */
-void sched_start(u32 ticks);
+void os_sched_start(u32 ticks);
 
 /**
  * @fn struct task task_get_current*(void)
@@ -71,7 +71,7 @@ void sched_start(u32 ticks);
  *
  * @return
  */
-struct task* task_get_current(void);
+struct os_task* os_task_get_current(void);
 
 /**
  * @fn void reschedule(void)
@@ -80,5 +80,5 @@ struct task* task_get_current(void);
  * @pre
  * @post
  */
-void reschedule(void);
+void os_reschedule(void);
 #endif /* TASK_H_ */

@@ -1,5 +1,5 @@
 #include "stm32h7xx.h"
-#include "task.h"
+#include "os_task.h"
 
 i32 task1(void* param);
 i32 task2(void* param);
@@ -19,11 +19,11 @@ int main(void)
     GPIOB->MODER &= ~(1U << 29);
     u32 stack1[12800];
     u32 stack2[12800];
-    struct task t1;
-    struct task t2;
-    task_init(&t1, task1, NULL, 1, stack1, sizeof(stack1));
-    task_init(&t2, task2, NULL, 2, stack2, sizeof(stack2));
-    sched_start(9000000);
+    struct os_task t1;
+    struct os_task t2;
+    os_task_init(&t1, task1, NULL, 1, stack1, sizeof(stack1));
+    os_task_init(&t2, task2, NULL, 2, stack2, sizeof(stack2));
+    os_sched_start(9000000);
     assert(0);
 }
 

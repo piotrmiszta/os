@@ -1,15 +1,15 @@
-#include "mutex.h"
+#include "os_mutex.h"
 
-i32 mutex_init(struct mutex* mtx)
+i32 os_mutex_init(struct os_mutex* mtx)
 {
     mtx->owner = NULL;
     list_init(&mtx->tasks);
     return 0;
 }
 
-i32 mutex_lock(struct mutex* mtx)
+i32 mutex_lock(struct os_mutex* mtx)
 {
-    struct task* curr = task_get_current();
+    struct os_task* curr = os_task_get_current();
     do
     {
         critical_start();
@@ -29,7 +29,7 @@ i32 mutex_lock(struct mutex* mtx)
             {
                 list_add_tail(&curr->list_mtx, &mtx->tasks);
             }
-            reschedule();
+            os_reschedule();
         }
         critical_end();
     } while (1);
@@ -37,10 +37,10 @@ i32 mutex_lock(struct mutex* mtx)
     return 0;
 }
 
-i32 mutex_unlock(struct mutex* mtx)
+i32 os_mutex_unlock(struct os_mutex* mtx)
 {
     critical_start();
-    if(mtx->owner != task_get_current())
+    if(mtx->owner != os_task_get_current())
     {
         critical_end();
         return -1;
@@ -50,19 +50,19 @@ i32 mutex_unlock(struct mutex* mtx)
     {
         struct list* lock = list_first(&mtx->tasks);
         list_del_entry(lock);
-        struct task* next = list_get_ptr(lock, struct task, list_mtx);
+        struct os_task* next = list_get_ptr(lock, struct os_task, list_mtx);
         next->status = TASK_READY;
     }
     critical_end();
     return 0;
 }
 
-i32 mutex_try_lock(struct mutex* mtx)
+i32 os_mutex_try_lock(struct os_mutex* mtx)
 {
     critical_start();
     if(mtx->owner == NULL)
     {
-        mtx->owner = task_get_current();
+        mtx->owner = os_task_get_current();
         critical_end();
         return 0;
     }
@@ -73,9 +73,9 @@ i32 mutex_try_lock(struct mutex* mtx)
     }
 }
 
-i32 mutex_destroy(struct mutex* mtx)
+i32 os_mutex_destroy(struct os_mutex* mtx)
 {
-    if(mutex_unlock(mtx))
+    if(os_mutex_unlock(mtx))
     {
         return -1;
     }
