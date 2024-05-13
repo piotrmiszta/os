@@ -1,0 +1,6 @@
+.vscode/
+CMSIS/
+**/*.elf
+**/*.map
+**/*.bin
+**/build/
